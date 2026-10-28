@@ -1,0 +1,463 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tổng sắp laptop</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  /* Giao diện theo bộ "teenage engineering" (catalogue công nghiệp, phẳng, góc vuông, kẻ chỉ mảnh).
+     Chỉnh theo luật chủ máy: không đen tuyền (chữ xám than #44403C), không mảng đen, không gradient/bóng,
+     không vạch màu ở mép ô. Màu duy nhất: tam giác cảnh báo vàng hổ phách. */
+  @page { size: A4 landscape; margin: 7mm 9mm 6mm; }
+  :root {
+    --canvas: #f6f8f7; --paper: #ffffff;
+    --ink: #44403c; --ink-strong: #292524; --muted: #6f6a64;
+    --hair: #e5e5e5; --hair-strong: #b2b2b2;
+    --tile: #57534e; --on-tile: #ffffff;
+    --bar: #c4c0bb; --bar-best: #44403c;
+    --warn-fill: #f0a800; --warn-ink: #8a4b00;
+    --focus: #0071bb;
+    --gap: 15px; --gap-l: 22px; --gap-xl: 33px;
+  }
+  * { box-sizing: border-box; border-radius: 0; }
+  html, body { margin: 0; background: var(--canvas); color: var(--ink); }
+  body { font-family: Inter, "Segoe UI", Arial, sans-serif; font-size: 13px; line-height: 1.4;
+         font-variant-numeric: tabular-nums; -webkit-font-smoothing: antialiased; }
+  .page { max-width: 1320px; margin: 0 auto; padding: var(--gap-xl) 24px; }
+  :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+  /* Đầu trang */
+  header { display: flex; justify-content: space-between; align-items: flex-end; gap: var(--gap);
+           padding-bottom: var(--gap); border-bottom: 1px solid var(--ink); }
+  .eyebrow { font-size: 12px; font-weight: 400; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+  h1 { font-size: 40px; line-height: 1.11; font-weight: 200; margin: 6px 0 0; color: var(--ink-strong); letter-spacing: -.01em; }
+  .meta { text-align: right; font-size: 12px; color: var(--muted); line-height: 1.6; }
+  .meta b { font-weight: 500; color: var(--ink); }
+  .sub { font-size: 13px; color: var(--muted); margin: var(--gap) 0 0; max-width: 820px; }
+
+  /* Top 3 — ô catalogue */
+  .section-label { display: flex; justify-content: space-between; align-items: baseline;
+                   margin: var(--gap-xl) 0 0; padding-bottom: 8px; border-bottom: 1px solid var(--hair); }
+  .section-label h2 { margin: 0; font-size: 12px; font-weight: 500; letter-spacing: .08em; text-transform: uppercase; color: var(--ink); }
+  .section-label span { font-size: 12px; color: var(--muted); }
+  .picks { display: grid; grid-template-columns: repeat(3, 1fr); background: var(--paper);
+           border-bottom: 1px solid var(--hair); }
+  .pick { padding: var(--gap-l) var(--gap-l) var(--gap); border-right: 1px solid var(--hair); min-width: 0; }
+  .pick:last-child { border-right: 0; }
+  .pick-top { display: flex; justify-content: space-between; align-items: flex-start; gap: var(--gap); }
+  .pick-rank { font-size: 64px; line-height: .9; font-weight: 200; color: var(--ink-strong); letter-spacing: -.03em; }
+  .pick-price { text-align: right; font-size: 26px; font-weight: 300; line-height: 1; color: var(--ink-strong); white-space: nowrap; }
+  .pick-price small { display: block; font-size: 11px; font-weight: 400; color: var(--muted); margin-top: 4px; letter-spacing: .04em; }
+  .pick-name { margin-top: var(--gap); font-size: 19px; font-weight: 400; line-height: 1.15; color: var(--ink-strong); }
+  .pick-seller { font-size: 12px; color: var(--muted); margin-top: 3px; }
+  .pick-spec { font-size: 12px; color: var(--ink); margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--hair); }
+  .pick-metrics { margin: 10px 0 0; display: grid; grid-template-columns: auto 1fr auto; gap: 5px 10px; align-items: center; font-size: 12px; }
+  .pick-metrics dt { color: var(--muted); }
+  .pick-metrics dd { margin: 0; text-align: right; color: var(--ink-strong); font-weight: 500; white-space: nowrap; }
+  .pick-metrics dd .rk { font-weight: 400; }
+  .pick-warn { margin-top: 8px; font-size: 12px; color: var(--warn-ink); display: flex; gap: 6px; align-items: flex-start; }
+
+  /* Thanh số liệu trong ô (không phải vạch mép — là thanh dữ liệu đứng riêng) */
+  .bar { display: inline-block; height: 4px; background: var(--hair); width: 100%; vertical-align: middle; position: relative; }
+  .bar i { position: absolute; left: 0; top: 0; bottom: 0; background: var(--bar); }
+  .bar.best i { background: var(--bar-best); }
+
+  /* Tam giác cảnh báo — màu duy nhất trên trang */
+  .tri { display: inline-block; width: 12px; height: 11px; flex: none; vertical-align: -1px; }
+  .tri path { fill: var(--warn-fill); }
+  .tri text { fill: var(--ink-strong); font: 700 7px Inter, Arial, sans-serif; }
+
+  /* Bộ lọc */
+  .filters { display: flex; flex-wrap: wrap; gap: 10px var(--gap-l); align-items: center;
+             margin-top: var(--gap-xl); padding: 12px 0; border-top: 1px solid var(--hair); border-bottom: 1px solid var(--hair); font-size: 13px; }
+  .filters label { display: inline-flex; align-items: center; gap: 8px; color: var(--ink); cursor: pointer; }
+  .filters .grp { color: var(--muted); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; }
+  .filters input[type=search], .filters select { height: 34px; padding: 0 10px; border: 1px solid var(--hair-strong);
+             background: var(--paper); color: var(--ink); font: inherit; }
+  .filters input[type=search] { width: 220px; }
+  .filters input[type=range] { width: 130px; accent-color: var(--ink); }
+  .filters input[type=checkbox] { accent-color: var(--ink); width: 16px; height: 16px; }
+  .filters button { height: 34px; padding: 0 16px; border: 1px solid var(--ink); background: transparent; color: var(--ink);
+                    font: inherit; cursor: pointer; transition: background-color .15s, color .15s; }
+  .filters button:hover { background: var(--tile); border-color: var(--tile); color: var(--on-tile); }
+  .count { margin-left: auto; color: var(--muted); font-size: 12px; }
+  .hint { color: var(--muted); font-size: 12px; margin: 8px 0 var(--gap); }
+
+  /* Bảng */
+  .tablewrap { background: var(--paper); }
+  table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+  thead th { font-size: 11px; font-weight: 500; letter-spacing: .04em; text-transform: uppercase; color: var(--muted);
+             text-align: center; vertical-align: bottom; padding: 10px 6px 8px; border-bottom: 1px solid var(--ink);
+             background: var(--canvas); user-select: none; line-height: 1.25; }
+  thead th.l { text-align: left; }
+  thead th.sortable { cursor: pointer; transition: color .15s, background-color .15s; }
+  thead th.sortable:hover { color: var(--ink-strong); background: var(--hair); }
+  thead th.active { color: var(--on-tile); background: var(--tile); }
+  thead th .arr { display: inline-block; margin-left: 3px; opacity: .5; font-size: 9px; }
+  thead th.active .arr { opacity: 1; }
+  tbody td { padding: 7px 6px; border-bottom: 1px solid var(--hair); vertical-align: middle; font-size: 13px; color: var(--ink); }
+  tbody tr { transition: background-color .15s; }
+  tbody tr:hover td { background: var(--canvas); }
+  tr { break-inside: avoid; }
+  td.c { text-align: center; } td.r { text-align: right; }
+  td.rank { text-align: center; font-size: 15px; font-weight: 300; color: var(--ink-strong); }
+  tr.top3 td.rank { background: var(--tile); color: var(--on-tile); font-weight: 500; }
+  tr.top3:hover td.rank { background: var(--tile); }
+  .model { font-weight: 500; color: var(--ink-strong); }
+  .seller { display: block; color: var(--muted); font-size: 11.5px; }
+  td.gpu { font-size: 12px; line-height: 1.3; }
+  .num { display: flex; align-items: center; gap: 6px; }
+  .num .bar { flex: 1 1 auto; min-width: 8px; }
+  .num b { font-weight: 500; color: var(--ink-strong); text-align: right; white-space: nowrap; }
+  .num.best b { font-weight: 600; }
+  .rk { color: var(--muted); font-size: 11px; font-weight: 400; }
+  .ram32 { font-weight: 600; color: var(--ink-strong); }
+  td.bh { font-size: 12px; line-height: 1.3; }
+  td.bh.warn { color: var(--warn-ink); }
+  .score { font-weight: 500; color: var(--ink-strong); }
+  tr.noprice td { color: var(--muted); }
+  .empty { text-align: center; color: var(--muted); padding: 24px; }
+
+  /* Ghi chú */
+  .notes { margin-top: var(--gap-xl); display: grid; grid-template-columns: 1fr 1fr; gap: var(--gap) var(--gap-xl); font-size: 12px; }
+  .notes h2 { margin: 0 0 8px; padding-bottom: 6px; border-bottom: 1px solid var(--hair);
+              font-size: 11px; font-weight: 500; letter-spacing: .08em; text-transform: uppercase; color: var(--ink); }
+  .notes ul { margin: 0; padding-left: 16px; }
+  .notes li { margin-bottom: 4px; }
+  .notes b { font-weight: 600; color: var(--ink-strong); }
+  footer { margin-top: var(--gap-l); padding-top: 10px; border-top: 1px solid var(--ink); color: var(--muted); font-size: 11.5px;
+           display: flex; justify-content: space-between; gap: var(--gap); flex-wrap: wrap; }
+  .printinfo { display: none; }
+
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+
+  @media print {
+    html, body { background: #fff; }
+    .page { padding: 0; max-width: none; zoom: .67; }
+    col:nth-child(3) { width: 19% !important; } col:nth-child(5) { width: 11% !important; }
+    col:nth-child(8), col:nth-child(9) { width: 8% !important; } col:nth-child(10) { width: 9% !important; }
+    col:nth-child(11) { width: 14.5% !important; } col:nth-child(4) { width: 7.5% !important; }
+    .pick-metrics dt:nth-of-type(4), .pick-metrics dt:nth-of-type(4) ~ * { display: none; }
+    .seller { display: inline; margin-left: 4px; }
+    .seller::before { content: "· "; }
+    tbody td:nth-child(4) { white-space: nowrap; }
+    td.gpu { font-size: 10.5px; line-height: 1.15; }
+    .num .bar { min-width: 6px; }
+    header { padding-bottom: 6px; }
+    h1 { font-size: 26px; margin-top: 2px; }
+    .sub { margin-top: 4px; font-size: 11px; }
+    .section-label { margin-top: 8px; padding-bottom: 4px; }
+    .picks { background: #fff; }
+    .pick { padding: 8px 12px 6px; }
+    .pick-rank { font-size: 34px; }
+    .pick-price { font-size: 18px; }
+    .pick-name { margin-top: 4px; font-size: 14px; }
+    .pick-metrics { margin-top: 5px; gap: 2px 8px; font-size: 11px; }
+    .pick-spec { margin-top: 4px; padding-top: 4px; font-size: 11px; }
+    .pick-warn { margin-top: 3px; font-size: 11px; }
+    .filters, .hint { display: none; }
+    .tablewrap { margin-top: 8px; }
+    thead th { padding: 4px 4px 3px; font-size: 9.5px; background: #fff; }
+    thead th.active { background: var(--tile); }
+    tbody td { padding: 1.5px 4px; font-size: 11px; line-height: 1.15; }
+    td.rank { font-size: 12px; }
+    .seller { font-size: 9.5px; }
+    td.bh { font-size: 10px; line-height: 1.15; }
+    .rk { font-size: 9.5px; }
+    .bar { height: 3px; }
+    .notes { margin-top: 8px; font-size: 10px; gap: 4px 20px; }
+    .notes h2 { margin-bottom: 3px; padding-bottom: 2px; font-size: 9.5px; }
+    .notes li { margin-bottom: 1px; }
+    footer { margin-top: 6px; padding-top: 4px; font-size: 9.5px; }
+    .printinfo { display: inline; }
+    tbody tr:hover td { background: inherit; }
+    thead th .arr { display: none; }
+    * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  }
+  @media screen and (max-width: 900px) {
+    .page { padding: 22px 16px; }
+    header { flex-direction: column; align-items: flex-start; }
+    .meta { text-align: left; }
+    h1 { font-size: 30px; }
+    .picks { grid-template-columns: 1fr; }
+    .pick { border-right: 0; border-bottom: 1px solid var(--hair); }
+    .notes { grid-template-columns: 1fr; }
+    .tablewrap { overflow-x: auto; }
+    table { min-width: 1100px; }
+    .filters input[type=search] { width: 100%; }
+    .filters label:first-child { flex: 1 1 100%; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+  <header>
+    <div>
+      <div class="eyebrow">so sánh laptop · có tính bảo hành</div>
+      <h1>tổng sắp laptop gaming</h1>
+    </div>
+    <div class="meta"><b>28.10.2026</b> · <span id="nAll"></span> máy<br>giá: triệu đồng</div>
+  </header>
+  <p class="sub">Hạng = điểm cân đối, trung bình 4 hạng: sức mạnh · làm việc · đáng tiền · bảo hành. Điểm càng thấp càng tốt.</p>
+
+  <div class="section-label"><h2>top 3</h2><span>theo điểm cân đối 4 tiêu chí</span></div>
+  <div class="picks" id="picks"></div>
+
+  <div class="filters" id="filters">
+    <label><span class="grp">Tìm</span><input type="search" id="q" placeholder="tên máy, CPU, GPU, người bán…"></label>
+    <label><span class="grp">Nguồn</span>
+      <select id="src">
+        <option value="">Tất cả</option>
+        <option value="shop">Shop (Tèo Em, Zalo)</option>
+        <option value="fb">Facebook</option>
+      </select></label>
+    <label><span class="grp">GPU</span>
+      <select id="gpu">
+        <option value="">Tất cả</option>
+        <option value="4090">RTX 4090</option>
+        <option value="4080">RTX 4080</option>
+        <option value="5070">RTX 5070 Ti</option>
+        <option value="4070">RTX 4070</option>
+        <option value="5060">RTX 5060</option>
+        <option value="3080">RTX 3080 Ti</option>
+        <option value="A1000">RTX A1000</option>
+      </select></label>
+    <label><span class="grp">Giá ≤</span><input type="range" id="price" min="24" max="50" step="0.5" value="50"><b id="priceVal">50</b> tr</label>
+    <label><input type="checkbox" id="ram32"> Có sẵn 32 GB</label>
+    <label><input type="checkbox" id="bhHang"> Còn BH hãng</label>
+    <label><input type="checkbox" id="hideNoPrice"> Ẩn máy chưa có giá</label>
+    <button type="button" id="reset">Đặt lại</button>
+    <span class="count" id="count" aria-live="polite"></span>
+  </div>
+  <p class="hint">Bấm tiêu đề cột để sắp xếp, bấm lần nữa để đảo chiều. Ctrl+P in đúng bảng đang lọc, khổ A4 ngang. Thanh xám trong ô = điểm so với máy tốt nhất cột đó.</p>
+
+  <div class="tablewrap">
+  <table>
+    <colgroup>
+      <col style="width:4%"><col style="width:2.8%"><col style="width:13.5%"><col style="width:8%">
+      <col style="width:11.5%"><col style="width:3.6%"><col style="width:4.6%"><col style="width:9.5%">
+      <col style="width:9%"><col style="width:10.5%"><col style="width:13%"><col style="width:5%"><col style="width:5%">
+    </colgroup>
+    <thead><tr id="headrow"></tr></thead>
+    <tbody id="tbody"></tbody>
+  </table>
+  </div>
+
+  <div class="notes">
+    <div>
+      <h2>Cách tính</h2>
+      <ul>
+        <li><b>Sức mạnh tổng</b> = trung bình điểm GPU (PassMark) và CPU đa nhân (Cinebench R23 Notebookcheck); RTX 5060 và i7-14650HX = 100.</li>
+        <li><b>Làm việc</b> (Illustrator + Photoshop + EPLAN + Inventor cùng lúc) = 0,4×CPU đơn nhân + 0,25×CPU đa nhân + 0,15×GPU + 0,2×RAM (16 GB = 60, 32 GB = 100), quy TUF F16 = 100.</li>
+        <li><b>Triệu / điểm</b> = giá ÷ sức mạnh tổng — càng thấp càng đáng tiền.</li>
+        <li><b>Bảo hành</b> = số tháng còn lại (lấy số lớn hơn giữa hãng và shop 6 tháng), tính từ 07/10/2026.</li>
+        <li>Dấu <b>~</b> = ước lượng (GPU chạy công suất thấp hơn mức thường). <b>*</b> = người bán không ghi công suất GPU.</li>
+      </ul>
+    </div>
+    <div>
+      <h2>Ghi chú</h2>
+      <ul>
+        <li>Ô hạng tô xám đậm = top 3. Bằng điểm cân đối thì máy có hạng kém nhất tốt hơn đứng trên. <svg class="tri" viewBox="0 0 12 11" aria-hidden="true"><path d="M6 0 12 11H0Z"/><text x="6" y="10" text-anchor="middle">!</text></svg> = rủi ro (không BH, màn lỗi, chưa ghi BH).</li>
+        <li>Máy 21 <b>màn có tì nhẹ</b>, hạng chưa trừ lỗi này. Máy 18 (Y9000P) nếu có BH shop 6 tháng → <b>hạng 6</b>.</li>
+        <li>Máy 22 (Legion Pro 7 16ARX8H, RTX 4090 — người bán nói, chưa có GPU-Z; 50 tr): mạnh nhất danh sách, người bán <b>không BH</b>; ≤ 44 tr mới ngang G18.</li>
+        <li>Máy 24 (Alienware x16 R1, 43 tr): CPU dòng H 14 nhân → đa nhân chỉ 96; hợp lý ≤ ~36 tr.</li>
+        <li>Máy 26 (Helios 3D 15 SpatialLabs, bạn Thành hỏi): điểm <b>y hệt máy 18</b> — sức mạnh 142, làm việc 128 (hạng 3). Màn 4K <b>3D không cần kính</b> nhưng chỉ <b>60Hz</b>. Chưa có người bán, chưa có giá; ≤ 36,5 tr mới ngang MSI Raider.</li>
+        <li>Máy 25 (Helios Neo 16S AI, 41 tr, Hà Nội): RTX 5070 Ti chỉ <b>115 W</b> → GPU ~121, gần RTX 4070; CPU đơn nhân cao nhất (114). ≤ 37,3 tr mới ngang G18; còn BH Acer thì lên hạng 6–9.</li>
+        <li>Nâng 16 → 32 GB tốn 5,5–11 triệu (08/10/2026). Máy 14 chưa có giá: ≤ 25,4 triệu mới ngang MSI Raider.</li>
+      </ul>
+    </div>
+  </div>
+  <footer><span>Nguồn: bảng so sánh <i>2026-09-28_so-sanh-laptop-gaming.md</i> · GPU: PassMark · CPU: Cinebench R23 Notebookcheck · chưa kiểm trên máy thật.</span><span class="printinfo" id="printinfo"></span></footer>
+</div>
+
+<script>
+// Dữ liệu: rank = hạng tổng sắp (4 tiêu chí); null = chưa có giá / chưa xếp.
+// src: shop | fb. hang: còn bảo hành hãng. approx: điểm ước lượng (~). warn: có rủi ro.
+const ROWS = [
+  {rank:1,  id:4,  name:"Strix G18 G814JZ", seller:"Tèo Em · 18\"", src:"shop", cpu:"i9-13980HX", gpu:"RTX 4080 12 GB 175 W", ram:16, price:39.9, sm:148, smR:5, lv:124, lvR:10, dt:0.270, dtR:5, bhTxt:"6 th · shop", bhR:6, hang:false, score:6.70, r3:6},
+  {rank:5,  id:5,  name:"Legion Pro 7 2024", seller:"Tèo Em", src:"shop", cpu:"i9-14900HX", gpu:"RTX 4080 12 GB 175 W", ram:32, price:48.9, sm:147.5, smR:9, lv:134, lvR:1, dt:0.332, dtR:17, bhTxt:"6 th · shop", bhR:6, hang:false, score:9.00, r3:9},
+  {rank:2,  id:16, name:"Scar 17 2023 G733PZ", seller:"FB \"Đ.N.\" · đã kiểm, bỏ", src:"fb", cpu:"Ryzen 9 7945HX", gpu:"RTX 4080 12 GB 175 W", ram:16, price:41.5, priceTxt:"~41,5", sm:156, smR:2, lv:125, lvR:6, dt:0.266, dtR:3, bhTxt:"~4,7 th · hãng tới 02/2027", bhR:16, hang:true, score:3.70, r3:1},
+  {rank:8,  id:12, name:"MSI Raider GE68 HX", seller:"Tèo Em · màn FHD+", src:"shop", cpu:"i9-14900HX", gpu:"RTX 4070 8 GB 140 W", ram:16, price:33.8, sm:131.5, smR:17, lv:120, lvR:14, dt:0.257, dtR:1, bhTxt:"6 th · shop", bhR:6, hang:false, score:10.70, r3:11},
+  {rank:6,  id:3,  name:"Scar G16 G634JZR", seller:"Tèo Em · Mini LED", src:"shop", cpu:"i9-14900HX", gpu:"RTX 4080 12 GB 175 W", ram:16, price:49.9, sm:147.5, smR:9, lv:125, lvR:6, dt:0.338, dtR:18, bhTxt:"7,9 th · hãng tới 03/06/2027", bhR:4, hang:true, score:11.00, r3:12},
+  {rank:4,  id:17, name:"Scar 17 2023 G733PZ", seller:"FB \"P.N.L.\" · Hà Nội, COD", src:"fb", cpu:"Ryzen 9 7945HX", gpu:"RTX 4080 12 GB 175 W*", ram:16, price:43.0, sm:156, smR:2, lv:125, lvR:6, dt:0.276, dtR:6, bhTxt:"~4,7 th · hãng tới 02/2027", bhR:16, hang:true, score:4.70, r3:3},
+  {rank:3,  id:21, name:"Scar 17 2023 (G733PZ?)", seller:"FB \"K.\" · Hà Nội, màn tì nhẹ", src:"fb", cpu:"Ryzen 9 7945HX", gpu:"RTX 4080 12 GB 175 W*", ram:16, price:41.5, sm:156, smR:2, lv:125, lvR:6, dt:0.266, dtR:3, bhTxt:"3 th · người bán; test 7 ngày", bhR:18, hang:false, warn:true, score:3.70, r3:1},
+  {rank:12,  id:13, name:"TUF A16 FA607PI", seller:"Tèo Em", src:"shop", cpu:"Ryzen 9 7940HX", gpu:"RTX 4070 8 GB 140 W", ram:16, price:33.8, sm:130, smR:20, lv:111, lvR:22, dt:0.260, dtR:2, bhTxt:"8,3 th · hãng tới 16/06/2027", bhR:2, hang:true, score:14.70, r3:17},
+  {rank:10,  id:20, name:"Legion R9000P 2024", seller:"Tèo Em · hàng TQ, 240Hz", src:"shop", cpu:"Ryzen 9 7945HX", gpu:"RTX 4070 8 GB 140 W*", ram:16, price:39.9, sm:140, smR:15, lv:120, lvR:14, dt:0.285, dtR:7, bhTxt:"6 th · shop", bhR:6, hang:false, score:12.00, r3:14},
+  {rank:7, id:15, name:"Scar 16 2023 G634JZ", seller:"FB \"N.V.\" · máy xước", src:"fb", cpu:"i9-13980HX", gpu:"RTX 4080 12 GB 175 W", ram:32, price:44.0, sm:148, smR:5, lv:133, lvR:2, dt:0.2973, dtR:10, bhTxt:"~0 · BH Asus hết 16/10/2026", bhR:20, hang:false, warn:true, score:5.70, r3:4},
+  {rank:15, id:6,  name:"Legion Y9000X 2024", seller:"Tèo Em · hàng TQ, màn 3.2K", src:"shop", cpu:"i9-14900HX", gpu:"RTX 4070 8 GB 140 W", ram:16, price:41.8, sm:131.5, smR:17, lv:120, lvR:14, dt:0.318, dtR:16, bhTxt:"6 th · shop", bhR:6, hang:false, score:15.70, r3:18},
+  {rank:13, id:19, name:"Scar 16 2023 G634JZ", seller:"FB \"K.\" (nhóm ROG TUF VN)", src:"fb", cpu:"i9-13980HX", gpu:"RTX 4080 12 GB 175 W*", ram:16, price:44.99, sm:148, smR:5, lv:124, lvR:10, dt:0.304, dtR:12, bhTxt:"người bán không ghi BH (tạm 0)", bhR:21, hang:false, warn:true, score:9.00, r3:8},
+  {rank:14, id:18, name:"Legion Y9000P 2023 Extreme", seller:"Shop T.H. · hàng TQ", src:"shop", cpu:"i9-13900HX", gpu:"RTX 4080 12 GB 175 W*", ram:32, price:44.5, priceTxt:"44,x", sm:142, smR:11, lv:128, lvR:3, dt:0.313, dtR:14, bhTxt:"shop không ghi BH (tạm 0)", bhR:21, hang:false, warn:true, score:9.30, r3:10},
+  {rank:9,  id:22, name:"Legion Pro 7 16ARX8H (2023)", seller:"FB \"H.K.\" · hàng Đức, có hoá đơn", src:"fb", cpu:"Ryzen 9 7945HX", gpu:"RTX 4090 16 GB 175 W*", ram:16, price:50.0, sm:162.5, smR:1, lv:127, lvR:5, dt:0.308, dtR:13, bhTxt:"~2,4 th · Lenovo Premium Care (Đức) tới 23/12/2026; người bán chỉ test 7 ngày", bhR:19, hang:true, warn:true, score:6.30, r3:5},
+  {rank:11, id:23, name:"Scar 16 2023 G634JZ", seller:"FB \"H.K.\" · có thể đã bán", src:"fb", cpu:"i9-13980HX", gpu:"RTX 4080 12 GB 175 W*", ram:16, price:43.0, sm:148, smR:5, lv:124, lvR:10, dt:0.291, dtR:8, bhTxt:"chỉ bao test 7 ngày, không BH (tạm 0)", bhR:21, hang:false, warn:true, score:7.70, r3:7},
+  {rank:25, id:24, name:"Alienware x16 R1", seller:"Messenger \"H.K.\" · hàng sắp về", src:"fb", cpu:"i9-13900HK", gpu:"RTX 4080 12 GB 175 W*", ram:32, price:43.0, sm:122, smR:21, lv:115, lvR:20, dt:0.352, dtR:20, bhTxt:"chưa hỏi; chỉ test 7 ngày (tạm 0)", bhR:21, hang:false, warn:true, score:20.30, r3:20},
+  {rank:19, id:1,  name:"TUF F16 FX608JMR (99%)", seller:"Tèo Em", src:"shop", cpu:"i7-14650HX", gpu:"RTX 5060 8 GB 115 W", ram:16, price:38.9, sm:100, smR:23, lv:100, lvR:24, dt:0.389, dtR:24, bhTxt:"8,6 th · hãng tới 26/06/2027", bhR:1, hang:true, score:23.70, r3:23},
+  {rank:22, id:2,  name:"TUF F16 FX608JMR (openbox)", seller:"Tèo Em · SSD 512 GB", src:"shop", cpu:"i7-14650HX", gpu:"RTX 5060 8 GB 115 W", ram:16, price:38.9, sm:100, smR:23, lv:100, lvR:24, dt:0.389, dtR:24, bhTxt:"6 th · shop; hãng tới 10/02/2027", bhR:5, hang:true, score:23.70, r3:23},
+  {rank:23, id:7,  name:"Zephyrus M16 GU604VZ", seller:"Zalo \"T.N.\" · hàng Mỹ", src:"shop", cpu:"i9-13900H", gpu:"RTX 4080 12 GB ~145 W", ram:16, price:43.8, sm:111.5, smR:22, lv:102, lvR:23, dt:0.393, dtR:25, bhTxt:"6 th · shop; hãng đang hỏi", bhR:6, hang:false, approx:true, score:23.30, r3:22},
+  {rank:21, id:11, name:"ThinkPad P1 Gen 5 i9", seller:"Tèo Em · hàng Mỹ", src:"shop", cpu:"i9-12900H", gpu:"RTX 3080 Ti 16 GB ~100 W", ram:16, price:30.9, sm:89, smR:25, lv:92, lvR:25, dt:0.347, dtR:19, bhTxt:"6 th · shop", bhR:6, hang:false, approx:true, score:23.00, r3:21},
+  {rank:24, id:8,  name:"ThinkPad X1 Extreme Gen 5", seller:"Tèo Em · 4K 60Hz, hàng Mỹ", src:"shop", cpu:"i9-12900H", gpu:"RTX 3080 Ti 16 GB 100 W", ram:16, price:32.8, sm:89, smR:25, lv:92, lvR:25, dt:0.369, dtR:22, bhTxt:"6 th · shop", bhR:6, hang:false, approx:true, score:24.00, r3:24},
+  {rank:26, id:9,  name:"ThinkPad P1 Gen 5 i7 (2.5K)", seller:"Tèo Em", src:"shop", cpu:"i7-12800H", gpu:"RTX A1000 4 GB", ram:16, price:24.9, sm:65.5, smR:27, lv:83, lvR:27, dt:0.380, dtR:23, bhTxt:"6 th · shop", bhR:6, hang:false, score:25.70, r3:25},
+  {rank:27, id:10, name:"ThinkPad P1 Gen 5 i7 (4K)", seller:"Tèo Em", src:"shop", cpu:"i7-12800H", gpu:"RTX A1000 4 GB", ram:16, price:25.8, sm:65.5, smR:27, lv:83, lvR:27, dt:0.394, dtR:26, bhTxt:"6 th · shop", bhR:6, hang:false, score:26.70, r3:26},
+  {rank:16, id:25, name:"Predator Helios Neo 16S AI", seller:"FB \"L.N.\" · Hà Nội, OLED 240Hz", src:"fb", cpu:"Core Ultra 9 275HX", gpu:"RTX 5070 Ti 12 GB 115 W", ram:16, price:41.0, sm:138, smR:16, lv:124, lvR:10, dt:0.2971, dtR:9, bhTxt:"người bán không ghi BH (tạm 0)", bhR:21, hang:false, warn:true, approx:true, score:11.70, r3:13},
+  {rank:null, id:14, name:"Zephyrus G16 2025", seller:"FB cá nhân · OLED", src:"fb", cpu:"Core Ultra 9 285H", gpu:"RTX 5060 8 GB ~105 W", ram:32, price:null, sm:99, smR:24, lv:112, lvR:21, dt:null, dtR:null, bhTxt:"~8 th · hãng 06/2027", bhR:3, hang:true, approx:true, score:null, r3:null},
+  {rank:18, id:26, name:"Predator Helios 3D 15 SpatialLabs", seller:"FB \"H.K.\" · 4K 60Hz, 3D không kính", src:"fb", cpu:"i9-13900HX", gpu:"RTX 4080 12 GB 175 W", ram:16, price:45.0, sm:142, smR:11, lv:119, lvR:18, dt:0.3169, dtR:15, bhTxt:"người bán không ghi BH; chỉ test 7 ngày (tạm 0)", bhR:21, hang:false, warn:true, score:14.70, r3:16},
+  {rank:17, id:27, name:"Legion 7 Pro 4080 (chưa rõ đời máy)", seller:"FB \"H.K.\" · Gen 8 hay Gen 9?", src:"fb", cpu:"i9-13900HX?", gpu:"RTX 4080 12 GB 175 W*", ram:16, price:43.0, sm:142, smR:11, lv:119, lvR:18, dt:0.3028, dtR:11, bhTxt:"người bán không ghi BH; chỉ test 7 ngày (tạm 0)", bhR:21, hang:false, warn:true, score:13.30, r3:15},
+  {rank:20, id:28, name:"Razer Blade 18 2024", seller:"FB \"N.T.\" · màn 18\" 2K 300Hz", src:"fb", cpu:"i9-14900HX", gpu:"RTX 4070 8 GB 140 W*", ram:16, price:47.99, sm:131.5, smR:17, lv:120, lvR:14, dt:0.365, dtR:21, bhTxt:"người bán không ghi BH (tạm 0)", bhR:21, hang:false, warn:true, score:17.30, r3:19},
+  {rank:null, id:29, name:"Alienware m18 R1", seller:"FB \"D.H.\" · chưa báo giá", src:"fb", cpu:"i9-13900HX?", gpu:"RTX 4080 12 GB 175 W*", ram:32, price:null, sm:142, smR:11, lv:128, lvR:3, dt:null, dtR:null, bhTxt:"chưa báo giá, chưa hỏi BH (tạm 0)", bhR:21, hang:false, warn:true, score:null, r3:null},
+];
+
+// Cột: key để sắp xếp, dir = chiều "tốt trước" khi bấm lần đầu (1 tăng, -1 giảm).
+const GPU_ORDER = {"4090":161, "4080":148, "5070":121, "4070":116, "3080":112, "5060":100, "A1000":56};
+function gpuScore(g) { for (const k in GPU_ORDER) if (g.includes(k)) return GPU_ORDER[k] - (g.includes("~") ? 5 : 0); return 0; }
+const COLS = [
+  {label:"Hạng", key:"rank", dir:1},
+  {label:"#", key:"id", dir:1},
+  {label:"Máy", key:"name", dir:1, cls:"l", text:true},
+  {label:"CPU", key:"cpu", dir:1, cls:"l", text:true},
+  {label:"GPU", dir:-1, cls:"l", sortKey:r => gpuScore(r.gpu)},
+  {label:"RAM", key:"ram", dir:-1},
+  {label:"Giá", key:"price", dir:1},
+  {label:"Sức mạnh (hạng)", key:"sm", dir:-1},
+  {label:"Làm việc (hạng)", key:"lv", dir:-1},
+  {label:"Triệu / điểm (hạng)", key:"dt", dir:1},
+  {label:"Bảo hành còn (hạng)", key:"bhR", dir:1, cls:"l"},
+  {label:"Điểm cân đối", key:"score", dir:1},
+  {label:"Hạng 3 tiêu chí", key:"r3", dir:1},
+];
+
+let sortCol = 0, sortDir = 1;
+const $ = id => document.getElementById(id);
+const fmt = (v, d) => v == null ? "—" : v.toFixed(d).replace(".", ",");
+const rk = v => v == null ? "" : ` <span class="rk">(${v})</span>`;
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]));
+const two = n => String(n).padStart(2, "0");
+const TRI = `<svg class="tri" viewBox="0 0 12 11" role="img" aria-label="rủi ro"><path d="M6 0 12 11H0Z"/><text x="6" y="10" text-anchor="middle">!</text></svg>`;
+
+// Mốc để vẽ thanh: cao hơn tốt hơn (sm, lv); dt thấp hơn tốt hơn.
+const vals = k => ROWS.map(r => r[k]).filter(v => v != null);
+const MAX_SM = Math.max(...vals("sm")), MAX_LV = Math.max(...vals("lv")), MIN_DT = Math.min(...vals("dt"));
+function bar(frac, best) {
+  const w = Math.max(4, Math.min(100, Math.round(frac * 100)));
+  return `<span class="bar${best ? " best" : ""}" aria-hidden="true"><i style="width:${w}%"></i></span>`;
+}
+function metric(text, frac, rank) {
+  return `<div class="num${rank === 1 ? " best" : ""}">${bar(frac, rank === 1)}<b>${text}</b></div>`;
+}
+
+function buildHead() {
+  $("headrow").innerHTML = COLS.map((c, i) =>
+    `<th class="sortable ${c.cls || ""}" data-i="${i}" tabindex="0" scope="col" title="Bấm để sắp xếp">${c.label}<span class="arr">⇅</span></th>`).join("");
+  $("headrow").querySelectorAll("th").forEach(th => {
+    const go = () => {
+      const i = +th.dataset.i;
+      if (i === sortCol) sortDir = -sortDir; else { sortCol = i; sortDir = COLS[i].dir; }
+      render();
+    };
+    th.addEventListener("click", go);
+    th.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); go(); } });
+  });
+}
+
+function passes(r) {
+  const q = $("q").value.trim().toLowerCase();
+  if (q && !`${r.name} ${r.seller} ${r.cpu} ${r.gpu} #${r.id}`.toLowerCase().includes(q)) return false;
+  if ($("src").value && r.src !== $("src").value) return false;
+  if ($("gpu").value && !r.gpu.includes($("gpu").value)) return false;
+  if (r.price != null && r.price > +$("price").value) return false;
+  if ($("ram32").checked && r.ram < 32) return false;
+  if ($("bhHang").checked && !r.hang) return false;
+  if ($("hideNoPrice").checked && r.price == null) return false;
+  return true;
+}
+
+function sorted(list) {
+  const c = COLS[sortCol];
+  const val = c.sortKey || (r => r[c.key]);
+  return [...list].sort((a, b) => {
+    const va = val(a), vb = val(b);
+    if (va == null && vb == null) return 0;
+    if (va == null) return 1;            // chưa có số liệu luôn xuống cuối
+    if (vb == null) return -1;
+    const d = c.text ? String(va).localeCompare(String(vb), "vi") : va - vb;
+    return d !== 0 ? d * sortDir : (a.rank ?? 99) - (b.rank ?? 99);
+  });
+}
+
+function rowHtml(r) {
+  const cls = [r.rank && r.rank <= 3 ? "top3" : "", r.price == null ? "noprice" : ""].join(" ");
+  const ap = r.approx ? "~" : "";
+  const dtTxt = r.dt == null ? "—" : ap + fmt(r.dt, 3);
+  return `<tr class="${cls}">
+    <td class="rank">${r.rank == null ? "—" : two(r.rank)}</td>
+    <td class="c">${r.id}</td>
+    <td><span class="model">${esc(r.name)}</span><span class="seller">${esc(r.seller)}</span></td>
+    <td>${esc(r.cpu)}</td>
+    <td class="gpu">${esc(r.gpu).replace(/ (W|GB)/g, "&nbsp;$1")}</td>
+    <td class="c ${r.ram >= 32 ? "ram32" : ""}">${r.ram}</td>
+    <td class="r">${r.price == null ? "chưa có" : (r.priceTxt || fmt(r.price, 1))}</td>
+    <td>${metric(ap + fmt(r.sm, r.sm % 1 ? 1 : 0) + rk(r.smR), r.sm / MAX_SM, r.smR)}</td>
+    <td>${metric(ap + r.lv + rk(r.lvR), r.lv / MAX_LV, r.lvR)}</td>
+    <td>${r.dt == null ? `<div class="num"><b>—</b></div>` : metric(dtTxt + rk(r.dtR), MIN_DT / r.dt, r.dtR)}</td>
+    <td class="bh ${r.warn ? "warn" : ""}">${r.warn ? TRI + " " : ""}${esc(r.bhTxt)}${rk(r.bhR)}</td>
+    <td class="c score">${fmt(r.score, 2)}</td>
+    <td class="c">${r.r3 ?? "—"}</td>
+  </tr>`;
+}
+
+function pickHtml(r) {
+  const ap = r.approx ? "~" : "";
+  return `<article class="pick">
+    <div class="pick-top">
+      <div class="pick-rank">${two(r.rank)}</div>
+      <div class="pick-price">${r.priceTxt || fmt(r.price, 1)}<small>triệu đồng · máy #${r.id}</small></div>
+    </div>
+    <div class="pick-name">${esc(r.name)}</div>
+    <div class="pick-seller">${esc(r.seller)}</div>
+    <dl class="pick-metrics">
+      <dt>Sức mạnh</dt>${bar(r.sm / MAX_SM, r.smR === 1)}<dd>${ap}${fmt(r.sm, r.sm % 1 ? 1 : 0)}${rk(r.smR)}</dd>
+      <dt>Làm việc</dt>${bar(r.lv / MAX_LV, r.lvR === 1)}<dd>${ap}${r.lv}${rk(r.lvR)}</dd>
+      <dt>Triệu / điểm</dt>${bar(MIN_DT / r.dt, r.dtR === 1)}<dd>${ap}${fmt(r.dt, 3)}${rk(r.dtR)}</dd>
+      <dt>Điểm cân đối</dt><span></span><dd>${fmt(r.score, 2)}</dd>
+    </dl>
+    <div class="pick-spec">${esc(r.cpu)} · ${esc(r.gpu)} · ${r.ram} GB</div>
+    <div class="pick-warn" style="${r.warn ? "" : "color:var(--muted)"}">${r.warn ? TRI : ""}<span>Bảo hành: ${esc(r.bhTxt)}</span></div>
+  </article>`;
+}
+
+function renderPicks() {
+  const top = ROWS.filter(r => r.rank != null).sort((a, b) => a.rank - b.rank).slice(0, 3);
+  $("picks").innerHTML = top.map(pickHtml).join("");
+}
+
+function render() {
+  $("priceVal").textContent = $("price").value.replace(".", ",");
+  const list = sorted(ROWS.filter(passes));
+  $("tbody").innerHTML = list.length ? list.map(rowHtml).join("")
+    : `<tr><td class="empty" colspan="${COLS.length}">Không có máy nào khớp bộ lọc — bấm "Đặt lại" để xem đủ ${ROWS.length} máy.</td></tr>`;
+  $("headrow").querySelectorAll("th").forEach((th, i) => {
+    const on = i === sortCol;
+    th.classList.toggle("active", on);
+    th.setAttribute("aria-sort", on ? (sortDir === 1 ? "ascending" : "descending") : "none");
+    th.querySelector(".arr").textContent = on ? (sortDir === 1 ? "▲" : "▼") : "⇅";
+  });
+  $("count").textContent = `Hiển thị ${list.length}/${ROWS.length} máy`;
+  const filtered = list.length < ROWS.length ? ` · đang lọc: ${list.length}/${ROWS.length} máy` : "";
+  $("printinfo").textContent = `Sắp xếp theo: ${COLS[sortCol].label} (${sortDir === 1 ? "tăng dần" : "giảm dần"})${filtered}`;
+}
+
+["q", "src", "gpu", "price", "ram32", "bhHang", "hideNoPrice"].forEach(id =>
+  $(id).addEventListener("input", render));
+$("reset").addEventListener("click", () => {
+  $("q").value = ""; $("src").value = ""; $("gpu").value = ""; $("price").value = 50;
+  ["ram32", "bhHang", "hideNoPrice"].forEach(id => $(id).checked = false);
+  sortCol = 0; sortDir = 1; render();
+});
+$("nAll").textContent = ROWS.length;
+buildHead();
+renderPicks();
+render();
+</script>
+</body>
+</html>
